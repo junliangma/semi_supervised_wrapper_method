@@ -11,7 +11,7 @@ class SelfTraining(BaseEstimator, TransformerMixin):
         self.learner = learner
         self.iterations_nb = iterations_nb
         self.pool_size = pool_size
-        self.training_way = training_way #0: Hard, 1: Soft, 2: full EM
+        self.training_way = training_way #0: Hard, 1: Soft, 2: Soft multi
         self.random_state = random_state
         self._labeled_data_size = -1
         self._unlabeled_data_size = -1
@@ -95,7 +95,7 @@ class SelfTraining(BaseEstimator, TransformerMixin):
                 probs = np.exp(scores) / np.sum(np.exp(scores))
                 new_weights[predicted_cat] = probs[0][predicted_cat] # only the best weight, not any others
             
-            elif self.training_way == 2: # full EM
+            elif self.training_way == 2: # Soft multi
                 probs = np.exp(scores) / np.sum(np.exp(scores))
                 new_weights = probs[0] # all weights
             
