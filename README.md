@@ -1,5 +1,5 @@
 # semi_supervised_wrapper_method
-If labeled data is expensive, why not leverage untagged data ?
+If labeled data is expensive, why not leverage unlabeled data ?
 
 This is why we have explored **wrapper method**.
 
