@@ -33,7 +33,7 @@ X = data.body
 y = data.target
 
 u_index, l_index = generate_data(X, y, NB_PER_CAT, SEED)
-print("Data PER category:", np.unique(y[l_index], return_counts=True))
+print("Labeled data PER category:", np.unique(y[l_index], return_counts=True))
 
 # -- Building dataset : labeled data and then unlabeled, need index reset
 X_train, X_test, y_train, y_test = train_test_split(
