@@ -7,21 +7,24 @@ from scipy.sparse import lil_matrix
 
 
 class SelfTraining(BaseEstimator, TransformerMixin):
-    def __init__(self, learner=LogisticRegression(), iterations_nb=5, pool_size=100, training_way=0, random_state=None):
+    def __init__(self, learner=LogisticRegression(), iterations_nb=5, pool_size=100, training_way=0, replacement=True, random_state=None):
         self.learner = learner
         self.iterations_nb = iterations_nb
         self.pool_size = pool_size
         self.training_way = training_way #0: Hard, 1: Soft, 2: Soft multi
+        self.replacement = replacement
         self.random_state = random_state
         self._labeled_data_size = -1
         self._unlabeled_data_size = -1
         self._categories_nb = -1
+        self._accessible_index = None
 
     def get_params(self, deep=False): # deep=False due to a little issue in Scikit-Learn
         return {"learner": self.learner,
             "iterations_nb": self.iterations_nb,
             "pool_size": self.pool_size,
             "training_way": self.training_way,
+            "replacement": self.replacement,
             "random_state": self.random_state}
 
     def set_params(self, **parameters):
@@ -67,6 +70,13 @@ class SelfTraining(BaseEstimator, TransformerMixin):
                     y_new[local_i] = cat
                 i_u += 1
                 
+        self._accessible_index = np.array(range(self._labeled_data_size, self._labeled_data_size + self._unlabeled_data_size))
+        
+        if not self.replacement and self._unlabeled_data_size < (self.iterations_nb * self.pool_size):
+            print("Warning: Not enough unlabeled data for {} iterations with pool size of {} WITHOUT replacement!".format(self.iterations_nb, self.pool_size))
+            self.iterations_nb = self._unlabeled_data_size // self.pool_size
+            print("Number of iterations has been automaticly reduced to {}.".format(self.iterations_nb))
+
         return X_new, y_new
 
     def __m_step(self, X, y, weights):
@@ -79,9 +89,17 @@ class SelfTraining(BaseEstimator, TransformerMixin):
         if not getattr(self.learner, "decision_function", None):
             raise ValueError('No decision_function in model.')
 
-        for i in np.random.randint(self._labeled_data_size,
-                                   self._labeled_data_size + self._unlabeled_data_size,
-                                   size=self.pool_size):
+        selected_sample = np.random.choice(self._accessible_index, self.pool_size, replace=False)
+
+        # Without replacement: we only keep labeled data as basis at each new step
+        if not self.replacement:
+            weights = np.array(self._labeled_data_size * [1] + self._categories_nb * self._unlabeled_data_size * [0], dtype=np.float64)
+
+        for i in selected_sample:
+
+        # for i in np.random.randint(self._labeled_data_size,
+        #                            self._labeled_data_size + self._unlabeled_data_size,
+        #                            size=self.pool_size):
 
             scores = self.learner.decision_function(X[i])
             predicted_cat = scores.argmax(axis=1)[0]
@@ -102,6 +120,10 @@ class SelfTraining(BaseEstimator, TransformerMixin):
             # Updating weights in each category for X[i]
             for cat in range(self._categories_nb):
                 weights[i + cat * self._unlabeled_data_size] = new_weights[cat]
+
+        # Without replacement: we remove used unlabeled data points index
+        if not self.replacement:
+            self._accessible_index = np.setdiff1d(self._accessible_index, selected_sample)
 
         return weights
 
