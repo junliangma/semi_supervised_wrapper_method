@@ -96,11 +96,7 @@ class SelfTraining(BaseEstimator, TransformerMixin):
             weights = np.array(self._labeled_data_size * [1] + self._categories_nb * self._unlabeled_data_size * [0], dtype=np.float64)
 
         for i in selected_sample:
-
-        # for i in np.random.randint(self._labeled_data_size,
-        #                            self._labeled_data_size + self._unlabeled_data_size,
-        #                            size=self.pool_size):
-
+            
             scores = self.learner.decision_function(X[i])
             predicted_cat = scores.argmax(axis=1)[0]
             
